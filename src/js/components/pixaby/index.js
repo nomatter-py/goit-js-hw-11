@@ -2,18 +2,8 @@ import Notiflix from 'notiflix';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
-import { getData } from '../../api';
-import cardsTemplate from '../../templates/photo-card.hbs';
-
-const PER_PAGE = 40;
-const fetchParams = {
-  q: '',
-  image_type: 'photo',
-  orientation: 'horizontal',
-  per_page: PER_PAGE,
-  page: 1,
-  safesearch: 'true',
-};
+import { getData, fetchParams } from '../../api';
+import cardsTemplate from '../../../templates/photo-card.hbs';
 
 let lastQuery;
 let page = 1;
@@ -40,18 +30,18 @@ function drawTemplate(data) {
 }
 
 let searchHandler = evt => {
-  let query = refs.form.elements.searchQuery.value.trim();
+  fetchParams.q = refs.form.elements.searchQuery.value.trim();
 
   evt.preventDefault();
 
-  if (query === '') {
-    lastQuery = query;
+  if (fetchParams.q === '') {
+    lastQuery = fetchParams.q;
     return;
   }
 
-  if (lastQuery !== query) {
-    lastQuery = query;
-    page = 1;
+  if (lastQuery !== fetchParams.q) {
+    lastQuery = fetchParams.q;
+    fetchParams.page = 1;
     refreshTemplate();
   } else {
     return;
@@ -61,7 +51,6 @@ let searchHandler = evt => {
     refs.loadMoreBtn.classList.toggle('load-more--hidden');
   }
 
-  fetchParams.q = refs.form.elements.searchQuery.value;
   getData(fetchParams).then(cards => {
     if (cards.total === 0) {
       Notiflix.Notify.warning(
@@ -73,7 +62,8 @@ let searchHandler = evt => {
 
     Notiflix.Notify.success(`Hooray! We found ${cards.total} images.`);
 
-    if (page * PER_PAGE < cards.total) refs.loadMoreBtn.classList.toggle('load-more--hidden');
+    if (fetchParams.page * fetchParams.per_page < cards.total)
+      refs.loadMoreBtn.classList.toggle('load-more--hidden');
 
     drawTemplate(cards);
     gallery.refresh();
@@ -81,15 +71,14 @@ let searchHandler = evt => {
 };
 
 let loadMoreHandler = () => {
-  page += 1;
   fetchParams.q = refs.form.elements.searchQuery.value;
-  fetchParams.page = page;
+  fetchParams.page += 1;
   getData(fetchParams).then(cards => {
     drawTemplate(cards);
 
-    console.log(`page: ${page * PER_PAGE}  total: ${cards.total}`);
+    console.log(`page: ${fetchParams.page * fetchParams.per_page}  total: ${cards.total}`);
 
-    if (page * PER_PAGE >= cards.total) {
+    if (fetchParams.page * fetchParams.per_page >= cards.total) {
       Notiflix.Notify.warning("We're sorry, but you've reached the end of search results.");
       refs.loadMoreBtn.classList.toggle('load-more--hidden');
     }
